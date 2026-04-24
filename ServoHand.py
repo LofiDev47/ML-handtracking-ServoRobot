@@ -76,7 +76,7 @@ landmarker = HandLandmarker.create_from_options(options)
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 prev = [0, 0, 0, 0, 0]
-alpha = 0.25
+alpha = 0.5
 
 # -----------------------------
 # HELPERS
@@ -125,8 +125,8 @@ while True:
 
         wrist = hand[0]
 
-        # THUMB (stable wrist-based)
-        thumb = 1.0 - clamp(dist(hand[4], wrist) / dist(hand[2], wrist))
+        # THUMB (same as other fingers)
+        thumb = finger_curl(hand, 4, 3)
 
         # INDEX (hinge curl model, same style as other fingers)
         index = finger_curl(hand, 8, 6)
@@ -137,6 +137,7 @@ while True:
         pinky  = finger_curl(hand, 20, 18)
 
         vals = [thumb, index, middle, ring, pinky]
+        print(f"raw: thumb={thumb:.2f} index={index:.2f} middle={middle:.2f} ring={ring:.2f} pinky={pinky:.2f}")
 
         # -----------------------------
         # SMOOTHING (IMPORTANT)
