@@ -76,8 +76,7 @@ landmarker = HandLandmarker.create_from_options(options)
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 prev = [0, 0, 0, 0, 0]
-target = [0, 0, 0, 0, 0]
-interpolation_steps = 10  # Smooth frames
+alpha = 0.25
 
 # -----------------------------
 # HELPERS
@@ -139,11 +138,11 @@ while True:
 
         vals = [thumb, index, middle, ring, pinky]
 
-        # Smoothly interpolate from prev towards new vals
+        # -----------------------------
+        # SMOOTHING (IMPORTANT)
+        # -----------------------------
         for i in range(5):
-            target[i] = vals[i]
-            prev[i] = prev[i] + (target[i] - prev[i]) / interpolation_steps
-            prev[i] = clamp(prev[i])
+            prev[i] = prev[i] * (1 - alpha) + vals[i] * alpha
 
         angles = [int(v * 180) for v in prev]
         angles = [max(0, min(180, a)) for a in angles]
@@ -152,8 +151,8 @@ while True:
         angles[2] = 180 - angles[2]  # middle
         angles[3] = 180 - angles[3]  # ring
         angles[4] = 180 - angles[4]  # pinky
-        
         ser.write(f"{angles[0]},{angles[1]},{angles[2]},{angles[3]},{angles[4]}\n".encode())
+
         print("ANGLES:", angles)
 
     # -----------------------------
