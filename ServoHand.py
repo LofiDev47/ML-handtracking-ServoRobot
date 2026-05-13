@@ -76,7 +76,8 @@ landmarker = HandLandmarker.create_from_options(options)
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 prev = [0, 0, 0, 0, 0]
-alpha = 0.5
+target = [0, 0, 0, 0, 0]
+interpolation_steps = 10  # Smooth frames
 
 # -----------------------------
 # HELPERS
@@ -125,8 +126,8 @@ while True:
 
         wrist = hand[0]
 
-        # THUMB (same as other fingers)
-        thumb = finger_curl(hand, 4, 3)
+        # THUMB (stable wrist-based)
+        thumb = 1.0 - clamp(dist(hand[4], wrist) / dist(hand[2], wrist))
 
         # INDEX (hinge curl model, same style as other fingers)
         index = finger_curl(hand, 8, 6)
@@ -137,22 +138,22 @@ while True:
         pinky  = finger_curl(hand, 20, 18)
 
         vals = [thumb, index, middle, ring, pinky]
-        print(f"raw: thumb={thumb:.2f} index={index:.2f} middle={middle:.2f} ring={ring:.2f} pinky={pinky:.2f}")
 
-        # -----------------------------
-        # SMOOTHING (IMPORTANT)
-        # -----------------------------
+        # Smoothly interpolate from prev towards new vals
         for i in range(5):
-            prev[i] = prev[i] * (1 - alpha) + vals[i] * alpha
+            target[i] = vals[i]
+            prev[i] = prev[i] + (target[i] - prev[i]) / interpolation_steps
+            prev[i] = clamp(prev[i])
 
         angles = [int(v * 180) for v in prev]
         angles = [max(0, min(180, a)) for a in angles]
-
-        # -----------------------------
-        # SEND TO MEGAPI
-        # -----------------------------
+        
+        # Reverse middle, ring, and pinky
+        angles[2] = 180 - angles[2]  # middle
+        angles[3] = 180 - angles[3]  # ring
+        angles[4] = 180 - angles[4]  # pinky
+        
         ser.write(f"{angles[0]},{angles[1]},{angles[2]},{angles[3]},{angles[4]}\n".encode())
-
         print("ANGLES:", angles)
 
     # -----------------------------
