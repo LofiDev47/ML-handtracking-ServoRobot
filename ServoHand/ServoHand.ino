@@ -6,11 +6,11 @@ int v[5];
 void setup() {
   Serial.begin(115200);
 
-  s[0].attach(69); // thumb
-  s[1].attach(65); // index
-  s[2].attach(63); // middle
-  s[3].attach(62); // ring
-  s[4].attach(60); // pinky
+  s[0].attach(60); // thumb
+  s[1].attach(63); // index
+  s[2].attach(62); // middle
+  s[3].attach(61); // ring
+  s[4].attach(64); // pinky
 }
 
 void loop() {

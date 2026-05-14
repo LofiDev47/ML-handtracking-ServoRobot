@@ -9,9 +9,9 @@ from serial.tools import list_ports
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-# -----------------------------
+
 # SERIAL (MEGAPI)
-# -----------------------------
+
 
 def find_serial_port():
     ports = list(list_ports.comports())
@@ -49,9 +49,9 @@ def find_serial_port():
 ser = serial.Serial(find_serial_port(), 115200)
 time.sleep(2)
 
-# -----------------------------
+
 # MEDIA PIPE TASKS SETUP
-# -----------------------------
+
 BaseOptions = mp.tasks.BaseOptions
 HandLandmarker = vision.HandLandmarker
 HandLandmarkerOptions = vision.HandLandmarkerOptions
@@ -70,17 +70,17 @@ options = HandLandmarkerOptions(
 
 landmarker = HandLandmarker.create_from_options(options)
 
-# -----------------------------
+
 # CAMERA
-# -----------------------------
+
 cap = cv2.VideoCapture(0, cv2.CAP_DSHOW)
 
 prev = [0, 0, 0, 0, 0]
 alpha = 0.25
 
-# -----------------------------
+
 # HELPERS
-# -----------------------------
+
 def clamp(x):
     return max(0.0, min(1.0, x))
 
@@ -90,9 +90,12 @@ def dist(a, b):
 def finger_curl(hand, tip, pip):
     return clamp((hand[tip].y - hand[pip].y) * 5 + 0.5)
 
-# -----------------------------
+def thumb_curl(hand):
+    # Thumb curl based on thumb tip distance to index base.
+    return clamp((dist(hand[4], hand[5]) - 0.08) * 5.5)
+
 # LOOP
-# -----------------------------
+
 while True:
     ret, frame = cap.read()
     if not ret:
@@ -103,14 +106,14 @@ while True:
     rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
 
-    # ✅ FIXED: proper VIDEO timestamp (NO MORE FREEZE)
+    # proper VIDEO timestamp
     timestamp = int(time.time() * 1000)
 
     result = landmarker.detect_for_video(mp_image, timestamp)
 
-    # -----------------------------
+  
     # LANDMARK DRAWING
-    # -----------------------------
+
     if result.hand_landmarks:
         hand = result.hand_landmarks[0]
 
@@ -119,35 +122,35 @@ while True:
             x, y = int(lm.x * w), int(lm.y * h)
             cv2.circle(frame, (x, y), 3, (0, 255, 0), -1)
 
-        # -----------------------------
-        # ROBUST FINGER MATH (FIXED)
-        # -----------------------------
+
+        # FINGER MATH 
+
 
         wrist = hand[0]
 
-        # THUMB (stable wrist-based)
-        thumb = 1.0 - clamp(dist(hand[4], wrist) / dist(hand[2], wrist))
 
-        # INDEX (hinge curl model, same style as other fingers)
+        thumb = thumb_curl(hand)
+
+    
         index = finger_curl(hand, 8, 6)
 
-        # OTHER FINGERS (stable hinge model)
-        middle = finger_curl(hand, 12, 10)
-        ring   = finger_curl(hand, 16, 14)
-        pinky  = finger_curl(hand, 20, 18)
+        middle = clamp((finger_curl(hand, 12, 10) - 0.08) * 1.5)
+        ring   = clamp((finger_curl(hand, 16, 14) - 0.10) * 2.0)
+        pinky  = clamp((finger_curl(hand, 20, 18) - 0.06) * 1.7)
 
         vals = [thumb, index, middle, ring, pinky]
 
-        # -----------------------------
+
         # SMOOTHING (IMPORTANT)
-        # -----------------------------
+
         for i in range(5):
             prev[i] = prev[i] * (1 - alpha) + vals[i] * alpha
 
         angles = [int(v * 180) for v in prev]
         angles = [max(0, min(180, a)) for a in angles]
         
-        # Reverse middle, ring, and pinky
+        # Reverse direction for thumb and the three inner fingers
+        angles[0] = 180 - angles[0]  # thumb
         angles[2] = 180 - angles[2]  # middle
         angles[3] = 180 - angles[3]  # ring
         angles[4] = 180 - angles[4]  # pinky
@@ -155,9 +158,9 @@ while True:
 
         print("ANGLES:", angles)
 
-    # -----------------------------
+
     # DISPLAY
-    # -----------------------------
+
     cv2.imshow("Robot Hand FINAL", frame)
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
