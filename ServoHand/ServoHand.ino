@@ -9,8 +9,8 @@ void setup() {
   s[0].attach(60); // thumb
   s[1].attach(63); // index
   s[2].attach(62); // middle
-  s[3].attach(61); // ring
-  s[4].attach(64); // pinky
+  s[3].attach(64); // ring
+  s[4].attach(61); // pinky
 }
 
 void loop() {

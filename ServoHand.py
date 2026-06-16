@@ -149,7 +149,7 @@ while True:
         angles = [int(v * 180) for v in prev]
         angles = [max(0, min(180, a)) for a in angles]
         
-        # Reverse direction for thumb and the three inner fingers
+        # Reverse direction for thumb and the three inner fingers                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
         angles[0] = 180 - angles[0]  # thumb
         angles[2] = 180 - angles[2]  # middle
         angles[3] = 180 - angles[3]  # ring
